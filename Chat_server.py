@@ -36,20 +36,16 @@ class ChatServer(object):
         self.server.close()
 
     def get_client_name(self, client):
-        """ Return the name of the client """
-        info = self.clientmap[client]
-        host, name = info[0][0], info[1]
-        return '@'.join((name, host))
+        """ Return just the username of the client """
+        return self.clientmap[client][1]  # Return only the username
 
     def run(self):
-        # inputs = [self.server, sys.stdin]
         inputs = [self.server]
         self.outputs = []
         running = True
         while running:
             try:
-                readable, writeable, exceptional = select.select(
-                    inputs, self.outputs, [])
+                readable, writeable, exceptional = select.select(inputs, self.outputs, [])
             except select.error as e:
                 break
 
@@ -58,38 +54,29 @@ class ChatServer(object):
                 if sock == self.server:
                     # handle the server socket
                     client, address = self.server.accept()
-                    print(
-                        f'Chat server: got connection {client.fileno()} from {address}')
+                    print(f'Chat server: got connection {client.fileno()} from {address}')
                     # Read the login name
-                    cname = receive(client).split('NAME: ')[1]
+                    cname = receive(client)
 
                     # Compute client name and send back
                     self.clients += 1
                     send(client, f'CLIENT: {str(address[0])}')
                     inputs.append(client)
 
-                    self.clientmap[client] = (address, cname)
+                    self.clientmap[client] = (address, cname)  # Store address and username
                     # Send joining information to other clients
                     msg = f'\n(Connected: New client ({self.clients}) from {self.get_client_name(client)})'
                     for output in self.outputs:
                         send(output, msg)
                     self.outputs.append(client)
 
-                # elif sock == sys.stdin:
-                #     # didn't test sys.stdin on windows system
-                #     # handle standard input
-                #     cmd = sys.stdin.readline().strip()
-                #     if cmd == 'list':
-                #         print(self.clientmap.values())
-                #     elif cmd == 'quit':
-                #         running = False
                 else:
                     # handle all other sockets
                     try:
                         data = receive(sock)
                         if data:
                             # Send as new client's message...
-                            msg = f'\n#[{self.get_client_name(sock)}]>> {data}'
+                            msg = f'\n{self.get_client_name(sock)}: {data}'
 
                             # Send data to all except ourself
                             for output in self.outputs:
@@ -103,7 +90,7 @@ class ChatServer(object):
                             self.outputs.remove(sock)
 
                             # Sending client leaving information to others
-                            msg = f'\n(Now hung up: Client from {self.get_client_name(sock)})'
+                            msg = f'\n(Now hung up: Client {self.get_client_name(sock)})'
 
                             for output in self.outputs:
                                 send(output, msg)
@@ -116,11 +103,9 @@ class ChatServer(object):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Socket Server Example with Select')
+    parser = argparse.ArgumentParser(description='Socket Server Example with Select')
     parser.add_argument('--name', action="store", dest="name", required=True)
-    parser.add_argument('--port', action="store",
-                        dest="port", type=int, required=True)
+    parser.add_argument('--port', action="store", dest="port", type=int, required=True)
     given_args = parser.parse_args()
     port = given_args.port
     name = given_args.name
