@@ -1,4 +1,6 @@
-﻿import select
+﻿import ssl
+
+import select
 import socket
 import sys
 import argparse
@@ -37,6 +39,9 @@ class ChatClient:
         self.connected = False
         self.host = host
         self.port = port
+
+        self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        self.context.set_ciphers('AES128-SHA')
 
         # Initial prompt
         self.prompt = '>> '
