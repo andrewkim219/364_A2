@@ -6,10 +6,19 @@ import sys
 import argparse
 import threading
 
+from database import register_user, authenticate_user
 from utils import *
 
 SERVER_HOST = 'localhost'
 stop_thread = False
+
+def register_new_user():
+    username = input("Enter a new username: ")
+    password = input("Enter a new password: ")
+    if register_user(username, password):
+        print("User registered successfully.")
+    else:
+        print("Username already exists.")
 
 def get_and_send(client):
     while not stop_thread:
@@ -53,7 +62,16 @@ class ChatClient:
             self.sock.connect((host, self.port))
             print(f'Now connected to chat server@ port {self.port}')
             self.connected = True
-            username = input("Enter your username: ")
+            while True:
+                username = input("Enter your username: ")
+                password = input("Enter your password: ")
+                send(self.sock, username)  # Send username
+                send(self.sock, password)
+                if authenticate_user(username, password):
+                    print("Authentication successful.")
+                    break
+                else:
+                    print("Authentication failed. Try again.")
 
             # Send my name...
             send(self.sock, username)
@@ -118,6 +136,10 @@ if __name__ == "__main__":
 
     port = given_args.port
     name = given_args.name
+
+    choice = input("Do you want to register a new user? (yes/no): ").strip().lower()
+    if choice == 'yes':
+        register_new_user()
 
     client = ChatClient(name=name, port=port)
     client.run()
