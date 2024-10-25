@@ -1,4 +1,4 @@
-﻿import ssl
+import ssl
 
 import select
 import socket
@@ -65,6 +65,7 @@ class ChatClient:
             while True:
                 username = input("Enter your username: ")
                 password = input("Enter your password: ")
+                send(self.sock, self.name)  # Send client name
                 send(self.sock, username)  # Send username
                 send(self.sock, password)
                 if authenticate_user(username, password):
@@ -73,8 +74,6 @@ class ChatClient:
                 else:
                     print("Authentication failed. Try again.")
 
-            # Send my name...
-            send(self.sock, username)
             data = receive(self.sock)
 
             # Contains client address, set it

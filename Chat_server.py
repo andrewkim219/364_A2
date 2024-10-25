@@ -9,6 +9,7 @@ from database import initialize_db, authenticate_user
 from utils import *
 
 SERVER_HOST = 'localhost'
+MAX_CLIENTS = 2
 
 class ChatServer(object):
     """ An example chat server using select """
@@ -67,15 +68,22 @@ class ChatServer(object):
             for sock in readable:
                 sys.stdout.flush()
                 if sock == self.server:
+                    if len(self.clientmap) >= MAX_CLIENTS:
+                        print("Maximum number of clients reached. Refusing new connection.")
+                        client, address = self.server.accept()
+                        client.close()
+                        continue
+
                     client, address = self.server.accept()
                     print(f'Chat server: got connection {client.fileno()} from {address}')
+                    client_name = receive(client)  # Read client name
                     username = receive(client)  # Read username
                     password = receive(client)  # Read password
 
                     if authenticate_user(username, password):
                         send(client, f'CLIENT: {str(address[0])}')
                         inputs.append(client)
-                        self.clientmap[client] = (address, username)
+                        self.clientmap[client] = (address, client_name)
                         msg = f'\n(Connected: New client ({self.clients}) from {self.get_client_name(client)})'
                         for output in self.outputs:
                             send(output, msg)
@@ -112,6 +120,9 @@ class ChatServer(object):
                         inputs.remove(sock)
                         self.outputs.remove(sock)
                         sock.close()
+                        if sock in self.clientmap:
+                            self.clients -= 1
+                            del self.clientmap[sock]
 
         self.server.close()
 
